@@ -1,13 +1,18 @@
 require 'spec_helper'
 
 describe RackedReact::Server do
-  it 'should serve index.html from any path' do
-    get "/#{SecureRandom.uuid}.html"
+  it 'should always fall back to index.html' do
+    get "/#{SecureRandom.uuid}"
     should_see_content_type('text/html')
     should_see_cache_header('no-cache')
   end
 
-  it 'should serve assets from paths starting with /static' do
+  it 'should serve static files from root if they exist' do
+    get '/other.txt'
+    should_see_content_type('text/plain')
+  end
+
+  it 'should serve cached assets from paths starting with /static' do
     get '/static/example.css'
     should_see_cache_header('public, max-age')
     should_see_content_type('text/css')

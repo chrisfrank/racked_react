@@ -1,3 +1,6 @@
+require 'rack'
+require 'rack/static'
+
 module RackedReact
   # serves up create-react-app compatible SPAs.
   # delivers index.html for all routes that aren't static assets
@@ -8,21 +11,41 @@ module RackedReact
   # map('/second_app') { run RackedReact::Server.new('a/different/build') }
   # run RackedReact::Server.new('the/default/apps/buildpath')
   class Server
-    def initialize(root = 'build', h: html_headers, rules: asset_headers)
-      @app = Rack::Builder.new do
-        use Rack::Deflater
-        use Rack::Static, urls: ['/static'], root: root,
-                          header_rules: rules
-        run ->(_env) { [200, h, File.open("#{root}/index.html", File::RDONLY)] }
+    # serves a file from the build directory, but always falls back
+    # to index.html, never 404s
+    class FileWithFallback
+      def initialize(root)
+        @root = root
+      end
+
+      def headers(path)
+        ext = ".#{path.split('.').last}"
+        ctype = Rack::Mime.mime_type(ext, 'text/html')
+        {
+          'Content-Type' => ctype,
+          'Cache-Control' => 'no-cache',
+        }
+      end
+
+      def body(path)
+        fullpath = "#{@root}#{path}"
+        outpath = File.file?(fullpath) ? fullpath : "#{@root}/index.html"
+        File.open(outpath, File::RDONLY)
+      end
+
+      def call(env)
+        path = env['PATH_INFO']
+        [200, headers(path), body(path)]
       end
     end
 
-    def html_headers
-      { 'Content-Type' => 'text/html', 'Cache-Control' => 'no-cache' }
-    end
-
-    def asset_headers
-      [[:all, { 'Cache-Control' => 'public, max-age=31536000' }]]
+    def initialize(root = 'build')
+      rules = [[:all, { 'Cache-Control' => 'public, max-age=31536000' }]]
+      @app = Rack::Builder.new do
+        use Rack::Deflater
+        use Rack::Static, root: root, urls: ['/static'], header_rules: rules
+        run FileWithFallback.new(root)
+      end
     end
 
     def call(env)
