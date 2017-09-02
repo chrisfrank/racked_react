@@ -3,6 +3,7 @@ Bundler.setup
 require 'racked_react'
 require 'rack/test'
 require 'pry'
+require 'securerandom'
 
 RSpec.configure do |config|
   config.color = true

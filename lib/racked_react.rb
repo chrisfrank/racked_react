@@ -11,45 +11,45 @@ module RackedReact
   # map('/second_app') { run RackedReact::Server.new('a/different/build') }
   # run RackedReact::Server.new('the/default/apps/buildpath')
   class Server
-    # serves a file from the build directory, but always falls back
-    # to index.html, never 404s
-    class FileWithFallback
-      def initialize(root)
-        @root = root
-      end
-
-      def headers(path)
-        ext = ".#{path.split('.').last}"
-        ctype = Rack::Mime.mime_type(ext, 'text/html')
-        {
-          'Content-Type' => ctype,
-          'Cache-Control' => 'no-cache',
-        }
-      end
-
-      def body(path)
-        fullpath = "#{@root}#{path}"
-        outpath = File.file?(fullpath) ? fullpath : "#{@root}/index.html"
-        File.open(outpath, File::RDONLY)
-      end
-
-      def call(env)
-        path = env['PATH_INFO']
-        [200, headers(path), body(path)]
-      end
-    end
-
     def initialize(root = 'build')
       rules = [[:all, { 'Cache-Control' => 'public, max-age=31536000' }]]
       @app = Rack::Builder.new do
         use Rack::Deflater
         use Rack::Static, root: root, urls: ['/static'], header_rules: rules
-        run FileWithFallback.new(root)
+        run FileOrIndex.new(root)
       end
     end
 
     def call(env)
       @app.call(env)
+    end
+
+    # if the request has a file extension, this class tries to serve it.
+    # requests with no file extension fall back to /index.html, which is
+    # what makes a static SPA with client side routing work.
+    class FileOrIndex
+      def initialize(root)
+        @root = root
+      end
+
+      def headers
+        {
+          'Content-Type' => Rack::Mime.mime_type(@extension, 'text/html'),
+          'Cache-Control' => 'no-cache',
+        }
+      end
+
+      def body
+        File.open(@path, File::RDONLY)
+      end
+
+      def call(env)
+        path = env['PATH_INFO']
+        matches = path.match(/(?<extension>\.\w*)\z/)
+        @extension = matches ? matches[:extension] : nil
+        @path = @extension ? "#{@root}#{path}" : "#{@root}/index.html"
+        [200, headers, body]
+      end
     end
   end
 end

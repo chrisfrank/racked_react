@@ -1,9 +1,1 @@
-<!doctype html>
-<html>
-  <head>
-    <title>React Static Server</title>
-  </head>
-  <body>
-    Yep.
-  </body>
-</html>
+I am a plain text file.

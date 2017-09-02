@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name          = 'racked_react'
-  spec.version       = '0.1.0'
+  spec.version       = '0.1.1'
   spec.authors       = ['chrisfrankdotfm']
   spec.email         = ['chris.frank@thefutureproject.org']
   spec.description   = 'Serve your static React apps with Rack'
@@ -19,5 +19,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rack-test'
 
   spec.add_dependency 'rack'
-  spec.add_dependency 'rack-contrib'
 end

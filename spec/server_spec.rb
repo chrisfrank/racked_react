@@ -10,6 +10,7 @@ describe RackedReact::Server do
   it 'should serve static files from root if they exist' do
     get '/other.txt'
     should_see_content_type('text/plain')
+    should_see_body_with('plain text')
   end
 
   it 'should serve cached assets from paths starting with /static' do
@@ -25,5 +26,9 @@ describe RackedReact::Server do
 
   def should_see_cache_header(header)
     expect(last_response.header['Cache-Control']).to include(header)
+  end
+
+  def should_see_body_with(text)
+    expect(last_response.body).to include(text)
   end
 end
